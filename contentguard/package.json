@@ -1,0 +1,30 @@
+{
+  "name": "contentguard",
+  "version": "1.0.0",
+  "description": "Content QA Tool — Match website content against your content document",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite\" \"wait-on http://localhost:5173 && electron . --dev\"",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "electron . --dev"
+  },
+  "dependencies": {
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.0.1",
+    "electron": "^32.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.0",
+    "wait-on": "^8.0.1"
+  },
+  "allowScripts": {
+    "core-js@3.49.0": true,
+    "electron@32.3.3": true,
+    "esbuild@0.21.5": true
+  }
+}
