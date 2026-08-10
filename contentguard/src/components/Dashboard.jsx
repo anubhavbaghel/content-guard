@@ -119,9 +119,9 @@ export default function Dashboard({ results, onNewCheck }) {
             No pages match this filter.
           </div>
         )}
-        {filtered.map((result, i) => (
+        {filtered.map((result) => (
           <PageCard
-            key={result.docPage.name + i}
+            key={result.docPage.name}
             result={result}
             onShowDiff={setDiff}
           />

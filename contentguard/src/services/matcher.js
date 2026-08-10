@@ -101,29 +101,36 @@ function findMatchingWebPage(docPage, webPages, siteUrl) {
 }
 
 // ──────────────────────────────────────────────────────────
+// Helper to normalize all whitespace (newlines, multiple spaces) for robust matching
+// ──────────────────────────────────────────────────────────
+function normalizeText(str) {
+  if (!str) return ''
+  return str.replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+// ──────────────────────────────────────────────────────────
 // Per-page checks
 // ──────────────────────────────────────────────────────────
 function runPageChecks(docPage, webPage, globalData) {
   const checks = []
 
-  const allText = (webPage.allText || '').toLowerCase()
-  const title = (webPage.title || '').toLowerCase()
-  const metaDesc = (webPage.metaDescription || '').toLowerCase()
-  const h1s = (webPage.h1s || []).map((h) => h.toLowerCase())
-  const buttons = (webPage.buttons || []).map((b) => b.toLowerCase())
+  const cleanAllText = normalizeText(webPage.allText)
+  const cleanTitle = normalizeText(webPage.title)
+  const cleanMetaDesc = normalizeText(webPage.metaDescription)
+  const cleanH1s = (webPage.h1s || []).map(normalizeText)
+  const cleanButtons = (webPage.buttons || []).map(normalizeText)
 
   // Helper: does page text contain this string?
   const inText = (str) => {
-    if (!str || !allText) return false
-    // Use first 60 chars to avoid minor trailing punctuation mismatches
-    return allText.includes(str.toLowerCase().substring(0, 60).trim())
+    if (!str || !cleanAllText) return false
+    return cleanAllText.includes(normalizeText(str))
   }
 
   // Helper: does any button/link contain this text?
   const hasButton = (str) => {
     if (!str) return false
-    const lower = str.toLowerCase()
-    return buttons.some((b) => b.includes(lower)) || allText.includes(lower)
+    const cleanStr = normalizeText(str)
+    return cleanButtons.some((b) => b.includes(cleanStr)) || cleanAllText.includes(cleanStr)
   }
 
   // ── 1. SEO Title ──────────────────────────────────────
@@ -131,7 +138,7 @@ function runPageChecks(docPage, webPage, globalData) {
     checks.push(makeCheck(
       'SEO Page Title',
       docPage.seoTitle,
-      webPage.title.toLowerCase() === docPage.seoTitle.toLowerCase(),
+      cleanTitle === normalizeText(docPage.seoTitle),
       webPage.title,
       `Expected <title> tag: "${docPage.seoTitle}"`
     ))
@@ -142,7 +149,7 @@ function runPageChecks(docPage, webPage, globalData) {
     checks.push(makeCheck(
       'Meta Description',
       docPage.metaDescription,
-      webPage.metaDescription.toLowerCase() === docPage.metaDescription.toLowerCase(),
+      cleanMetaDesc === normalizeText(docPage.metaDescription),
       webPage.metaDescription,
       `Expected <meta name="description">: "${docPage.metaDescription}"`
     ))
@@ -154,7 +161,7 @@ function runPageChecks(docPage, webPage, globalData) {
     checks.push(makeCheck(
       'H1 Heading',
       docPage.h1,
-      actualH1.toLowerCase() === docPage.h1.toLowerCase(),
+      cleanH1s.includes(normalizeText(docPage.h1)),
       actualH1,
       `Expected <h1>: "${docPage.h1}"`
     ))
