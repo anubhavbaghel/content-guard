@@ -42,19 +42,17 @@ export default function PageCard({ result, onShowDiff }) {
         </div>
       </div>
 
-      {/* Body — check list with smooth grid transition wrapper */}
+      {/* Body — check list with smooth max-height transition wrapper */}
       <div className="page-card-body-wrapper">
-        <div className="page-card-body-inner">
-          <div className="page-card-body">
-            <div className="checks-list">
-              {checks.map((check, i) => (
-                <CheckRow
-                  key={i}
-                  check={check}
-                  onShowDiff={() => onShowDiff(check)}
-                />
-              ))}
-            </div>
+        <div className="page-card-body">
+          <div className="checks-list">
+            {checks.map((check, i) => (
+              <CheckRow
+                key={i}
+                check={check}
+                onShowDiff={() => onShowDiff(check)}
+              />
+            ))}
           </div>
         </div>
       </div>

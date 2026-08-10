@@ -656,22 +656,16 @@ body {
 }
 
 .page-card-body-wrapper {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--dur-mid) var(--ease);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--dur-mid) var(--ease);
 }
 
 .page-card.is-open .page-card-body-wrapper {
-  grid-template-rows: 1fr;
-}
-
-.page-card-body-inner {
-  min-height: 0;
-  overflow: hidden;
+  max-height: 500px;
 }
 
 .page-card-body {
-  min-height: 0;
   max-height: 380px;
   overflow-y: auto;
   border-top: 1px solid transparent;

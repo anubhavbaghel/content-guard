@@ -34,11 +34,21 @@ function run() {
         fs.mkdirSync(backupDir)
       }
 
-      for (const file of filesToBackup) {
-        const src = path.join(releaseDir, file)
-        const dest = path.join(backupDir, file)
-        fs.renameSync(src, dest)
-        console.log(`  Archive: Moved ${file} -> release/backups/v${currentVersion}/${file}`)
+      try {
+        for (const file of filesToBackup) {
+          const src = path.join(releaseDir, file)
+          const dest = path.join(backupDir, file)
+          fs.renameSync(src, dest)
+          console.log(`  Archive: Moved ${file} -> release/backups/v${currentVersion}/${file}`)
+        }
+      } catch (err) {
+        if (err.code === 'EBUSY') {
+          console.error('\n[Build Pipeline Error] One of the build executables is currently in use/running.')
+          console.error('Please close the running ContentGuard application window first, then run build again.\n')
+        } else {
+          console.error('\n[Build Pipeline Error] Failed to archive old builds:', err.message, '\n')
+        }
+        process.exit(1)
       }
     } else {
       console.log('[Build Pipeline] No previous builds found in release root to archive.')
