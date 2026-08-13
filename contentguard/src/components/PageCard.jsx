@@ -1,20 +1,13 @@
-import { useState, useEffect } from 'react'
+import React from 'react'
 
 export default function PageCard({ result, onShowDiff }) {
-  const [open, setOpen] = useState(result.failCount > 0)
-
-  // Keep open state synced if result updates
-  useEffect(() => {
-    setOpen(result.failCount > 0)
-  }, [result])
-
   const { docPage, webPage, checks, passCount, failCount } = result
   const allPass = failCount === 0
 
   return (
-    <div className={`page-card ${open ? 'is-open' : ''}`}>
+    <div className="page-card">
       {/* Header */}
-      <div className="page-card-header" onClick={() => setOpen(o => !o)}>
+      <div className="page-card-header">
         <div className={`page-card-icon ${allPass ? 'pass' : 'fail'}`}>
           {allPass ? '✓' : '!'}
         </div>
@@ -34,26 +27,18 @@ export default function PageCard({ result, onShowDiff }) {
             <span className="badge badge-fail">✕ {failCount}</span>
           )}
         </div>
-
-        <div className="page-card-chevron">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </div>
       </div>
 
-      {/* Body — check list with smooth max-height transition wrapper */}
-      <div className="page-card-body-wrapper">
-        <div className="page-card-body">
-          <div className="checks-list">
-            {checks.map((check, i) => (
-              <CheckRow
-                key={i}
-                check={check}
-                onShowDiff={() => onShowDiff(check)}
-              />
-            ))}
-          </div>
+      {/* Body — check list (always visible, full height) */}
+      <div className="page-card-body">
+        <div className="checks-list">
+          {checks.map((check, i) => (
+            <CheckRow
+              key={i}
+              check={check}
+              onShowDiff={() => onShowDiff(check)}
+            />
+          ))}
         </div>
       </div>
     </div>
