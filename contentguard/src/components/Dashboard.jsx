@@ -85,7 +85,7 @@ export default function Dashboard({ results, onNewCheck }) {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ padding: '12px 28px 0', display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', background: 'rgba(7,7,26,0.5)' }}>
+      <div style={{ padding: '12px 28px 0', display: 'flex', gap: 8, borderBottom: '1px solid var(--border)', background: 'var(--bg-1)' }}>
         {[
           { key: 'all',  label: `All Pages (${pageResults.length})` },
           { key: 'fail', label: `Issues (${pageResults.filter(p => p.failCount > 0).length})` },
