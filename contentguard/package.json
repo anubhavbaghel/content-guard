@@ -1,6 +1,6 @@
 {
   "name": "contentguard",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Content QA Tool — Match website content against your content document",
   "main": "electron/main.js",
   "scripts": {
