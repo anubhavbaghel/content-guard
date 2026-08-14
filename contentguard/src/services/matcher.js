@@ -8,25 +8,102 @@
 // ──────────────────────────────────────────────────────────
 // URL keyword map for doc page → web page matching
 // ──────────────────────────────────────────────────────────
-const URL_KEYWORD_MAP = {
-  'home': ['home', '/', ''],
-  'luxury residential decorating': ['residential', 'luxury-residential'],
-  'commercial decorating': ['commercial'],
-  'heritage and period property restoration': ['heritage', 'period', 'restoration'],
-  'high-end painting & decorating': ['painting', 'high-end', 'painting-decorating'],
-  'gallery': ['gallery'],
-  'contact me': ['contact'],
+// ──────────────────────────────────────────────────────────
+// URL → Page matching (Dynamic Scoring System)
+// ──────────────────────────────────────────────────────────
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^\w\-]+/g, '')       // Remove all non-word chars
+    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+    .replace(/^-+/, '')             // Trim - from start
+    .replace(/-+$/, '')             // Trim - from end
 }
 
-// ──────────────────────────────────────────────────────────
-// Main export
-// ──────────────────────────────────────────────────────────
-/**
- * @param {object} docData - Parsed doc data from docParser
- * @param {object[]} webPages - Array of crawled page data objects
- * @param {string} siteUrl - Root site URL
- * @returns {object} Full match results
- */
+function getMatchScore(docPage, webPage, siteUrl) {
+  const nameLower = docPage.name.toLowerCase()
+  const urlLower = webPage.url.toLowerCase()
+
+  // Get the URL path part (e.g. "used-bikes" from "https://site.com/used-bikes")
+  const rootNorm = siteUrl.replace(/\/$/, '')
+  const pathPart = urlLower.replace(rootNorm, '').replace(/^\//, '').replace(/\/$/, '')
+
+  // 1. Root URL match for Home page
+  if (nameLower === 'home' || nameLower === 'welcome') {
+    return pathPart === '' || pathPart === 'home' || pathPart === 'welcome' ? 100 : 0
+  }
+
+  // Do not match sub-pages to the root/homepage URL
+  if (pathPart === '' || pathPart === 'home') {
+    return 0
+  }
+
+  let score = 0
+
+  // 2. Exact slug match in URL path (highest priority)
+  const docSlug = slugify(docPage.name)
+  if (docSlug && pathPart === docSlug) {
+    score += 80
+  } else if (docSlug && pathPart.includes(docSlug)) {
+    score += 50
+  }
+
+  // 3. Keyword intersection in URL (excluding stop words)
+  const stopWords = new Set(['and', 'or', 'the', 'me', 'to', 'for', 'at', 'in', 'of', 'with', 'by', 'a', 'an', '&'])
+  const docKeywords = nameLower.split(/\s+/).filter(w => w.length > 2 && !stopWords.has(w))
+
+  if (docKeywords.length > 0) {
+    let kwMatches = 0
+    for (const kw of docKeywords) {
+      if (pathPart.includes(kw)) {
+        kwMatches++
+      }
+    }
+    // If all keywords exist in the URL path, give a high bonus
+    if (kwMatches === docKeywords.length) {
+      score += 40
+    } else {
+      score += kwMatches * 15
+    }
+  }
+
+  // 4. Title / H1 fuzzy matching
+  const cleanTitle = (webPage.title || '').toLowerCase()
+  const cleanH1 = (webPage.h1s?.[0] || '').toLowerCase()
+
+  if (docKeywords.length > 0) {
+    let titleMatches = 0
+    let h1Matches = 0
+    for (const kw of docKeywords) {
+      if (cleanTitle.includes(kw)) titleMatches++
+      if (cleanH1.includes(kw)) h1Matches++
+    }
+    score += (titleMatches / docKeywords.length) * 15
+    score += (h1Matches / docKeywords.length) * 15
+  }
+
+  return score
+}
+
+function findMatchingWebPage(docPage, webPages, siteUrl) {
+  let bestPage = null
+  let bestScore = -1
+
+  for (const wp of webPages) {
+    const score = getMatchScore(docPage, wp, siteUrl)
+    if (score > bestScore) {
+      bestScore = score
+      bestPage = wp
+    }
+  }
+
+  // Safety threshold: if no page scored at least 15 points, don't match
+  return bestScore >= 15 ? bestPage : null
+}
+
 export function matchAllPages(docData, webPages, siteUrl) {
   const pageResults = []
   let totalChecks = 0, passedChecks = 0, failedChecks = 0
@@ -62,42 +139,6 @@ export function matchAllPages(docData, webPages, siteUrl) {
       matchedPages: pageResults.filter((r) => r.webPage).length,
     },
   }
-}
-
-// ──────────────────────────────────────────────────────────
-// URL → Page matching
-// ──────────────────────────────────────────────────────────
-function findMatchingWebPage(docPage, webPages, siteUrl) {
-  const nameLower = docPage.name.toLowerCase()
-  const keywords = URL_KEYWORD_MAP[nameLower] || nameLower.split(/\s+/).slice(0, 3)
-
-  const rootNorm = siteUrl.replace(/\/$/, '')
-
-  // 1. Root URL match for Home
-  if (nameLower === 'home') {
-    const root = webPages.find((wp) => {
-      const u = wp.url.replace(/\/$/, '')
-      return u === rootNorm
-    })
-    if (root) return root
-  }
-
-  // 2. URL keyword match
-  for (const kw of keywords) {
-    if (!kw) continue
-    const match = webPages.find((wp) => wp.url.toLowerCase().includes(kw))
-    if (match) return match
-  }
-
-  // 3. Title / H1 fuzzy match
-  const firstWord = nameLower.split(' ')[0]
-  for (const wp of webPages) {
-    const title = (wp.title || '').toLowerCase()
-    const h1 = (wp.h1s?.[0] || '').toLowerCase()
-    if (title.includes(firstWord) || h1.includes(firstWord)) return wp
-  }
-
-  return null
 }
 
 // ──────────────────────────────────────────────────────────
