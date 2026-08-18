@@ -90,15 +90,15 @@ function extractPages(lines) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
 
-    // Pattern: "Something (Page N)"
-    const match = line.match(/^(.+?)\s*\(Page\s*(\d+)\)\s*$/)
+    // Pattern: "Something (Page N)" — case-insensitive, supports full-width parentheses
+    const match = line.match(/^(.+?)\s*[\(（]Page\s*(\d+)[\)）]\s*$/i)
     if (match) {
       pageStarts.push({ index: i, name: match[1].trim(), number: parseInt(match[2]) })
       continue
     }
 
     // "Home" as first page — confirm by looking ahead for Page/Meta Title
-    if (line === 'Home' && pageStarts.length === 0) {
+    if (line.toLowerCase() === 'home' && pageStarts.length === 0) {
       const nextLines = lines.slice(i + 1, i + 6).join(' ')
       if (/Page.?Meta Title|Page Title/i.test(nextLines)) {
         pageStarts.push({ index: i, name: 'Home', number: 1 })

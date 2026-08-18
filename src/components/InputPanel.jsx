@@ -19,10 +19,32 @@ export default function InputPanel({ docUrl, siteUrl, onDocUrlChange, onSiteUrlC
       if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
         const parser = new DOMParser()
         const doc = parser.parseFromString(content, 'text/html')
-        const scripts = doc.querySelectorAll('script, style')
-        scripts.forEach(s => s.remove())
-        const plainText = doc.body.innerText || doc.body.textContent || ''
-        setLocalFileText(plainText)
+        
+        let text = ''
+        function walk(n) {
+          if (n.nodeType === 3) { // Node.TEXT_NODE
+            text += n.nodeValue
+          } else if (n.nodeType === 1) { // Node.ELEMENT_NODE
+            const tagName = n.tagName.toLowerCase()
+            if (tagName === 'script' || tagName === 'style') return
+
+            const isBlock = ['p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'tr', 'br'].includes(tagName)
+            if (isBlock && text && !text.endsWith('\n')) {
+              text += '\n'
+            }
+
+            for (let child = n.firstChild; child; child = child.nextSibling) {
+              walk(child)
+            }
+
+            if (isBlock && !text.endsWith('\n')) {
+              text += '\n'
+            }
+          }
+        }
+        
+        walk(doc.body)
+        setLocalFileText(text)
       } else {
         setLocalFileText(content)
       }
