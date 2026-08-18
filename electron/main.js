@@ -11,12 +11,12 @@ let mainWindow = null
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 1100,
-    minHeight: 700,
+    width: 1200,
+    height: 800,
+    minWidth: 1024,
+    minHeight: 680,
     frame: false,
-    backgroundColor: '#05050f',
+    backgroundColor: '#f8fafc',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
