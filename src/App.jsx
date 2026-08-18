@@ -3,6 +3,7 @@ import InputPanel from './components/InputPanel'
 import RunningView from './components/RunningView'
 import Dashboard from './components/Dashboard'
 import { fetchAndParseDoc } from './services/docFetcher'
+import { parseDoc } from './services/docParser'
 import { matchAllPages } from './services/matcher'
 
 const VIEWS = { INPUT: 'input', RUNNING: 'running', RESULTS: 'results' }
@@ -16,7 +17,7 @@ export default function App() {
   const [error, setError]      = useState(null)
 
   // ── QA Orchestration ────────────────────────────────────
-  const runQA = useCallback(async (docUrlIn, siteUrlIn) => {
+  const runQA = useCallback(async (docSource, siteUrlIn, isLocalFile = false) => {
     setView(VIEWS.RUNNING)
     setError(null)
 
@@ -38,8 +39,13 @@ export default function App() {
 
     try {
       // Step 1: Fetch & parse Google Doc
-      push('Fetching content document…')
-      const docData = await fetchAndParseDoc(docUrlIn)
+      push(isLocalFile ? 'Parsing local document file…' : 'Fetching content document…')
+      let docData
+      if (isLocalFile) {
+        docData = parseDoc(docSource)
+      } else {
+        docData = await fetchAndParseDoc(docSource)
+      }
       done()
 
       if (!docData.pages.length) {
@@ -76,7 +82,13 @@ export default function App() {
       const matchResults = matchAllPages(docData, webPages, siteUrlIn)
       done()
 
-      setResults({ docData, webPages, matchResults, siteUrl: siteUrlIn, docUrl: docUrlIn })
+      setResults({
+        docData,
+        webPages,
+        matchResults,
+        siteUrl: siteUrlIn,
+        docUrl: isLocalFile ? 'Local File Import' : docSource
+      })
       setView(VIEWS.RESULTS)
 
     } catch (e) {

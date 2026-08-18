@@ -4,15 +4,53 @@ const hasElectronAPI = typeof window !== 'undefined' && !!window.electronAPI
 
 export default function InputPanel({ docUrl, siteUrl, onDocUrlChange, onSiteUrlChange, onRun, error, onClearError }) {
   const [running, setRunning] = useState(false)
+  const [docInputType, setDocInputType] = useState('url') // 'url' | 'file'
+  const [localFileText, setLocalFileText] = useState('')
+  const [localFileName, setLocalFileName] = useState('')
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setLocalFileName(file.name)
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const content = event.target.result
+      if (file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(content, 'text/html')
+        const scripts = doc.querySelectorAll('script, style')
+        scripts.forEach(s => s.remove())
+        const plainText = doc.body.innerText || doc.body.textContent || ''
+        setLocalFileText(plainText)
+      } else {
+        setLocalFileText(content)
+      }
+      onClearError?.()
+    }
+    reader.readAsText(file)
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!docUrl.trim() || !siteUrl.trim()) return
-    setRunning(true)
-    try {
-      await onRun(docUrl.trim(), siteUrl.trim())
-    } finally {
-      setRunning(false)
+    if (!siteUrl.trim()) return
+
+    if (docInputType === 'url') {
+      if (!docUrl.trim()) return
+      setRunning(true)
+      try {
+        await onRun(docUrl.trim(), siteUrl.trim(), false)
+      } finally {
+        setRunning(false)
+      }
+    } else {
+      if (!localFileText.trim()) return
+      setRunning(true)
+      try {
+        await onRun(localFileText.trim(), siteUrl.trim(), true)
+      } finally {
+        setRunning(false)
+      }
     }
   }
 
@@ -36,7 +74,7 @@ export default function InputPanel({ docUrl, siteUrl, onDocUrlChange, onSiteUrlC
           <h1>
             <span className="gradient-text">ContentGuard</span>
           </h1>
-          <p>Paste your content doc and website URL to check for any missing or mismatched content.</p>
+          <p>Paste your content doc or upload a file and input the website URL to run QA checks.</p>
         </div>
 
         {/* Electron API Status */}
@@ -73,27 +111,102 @@ export default function InputPanel({ docUrl, siteUrl, onDocUrlChange, onSiteUrlC
         <form onSubmit={handleSubmit}>
           <div className="input-fields">
             <div className="input-group">
-              <label>Google Doc URL</label>
-              <div className="input-with-icon">
-                <span className="input-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10 9 9 9 8 9"/>
-                  </svg>
-                </span>
-                <input
-                  className="input-field"
-                  type="url"
-                  placeholder="https://docs.google.com/document/d/..."
-                  value={docUrl}
-                  onChange={e => { onDocUrlChange(e.target.value); onClearError?.() }}
-                  required
-                  spellCheck={false}
-                />
+              <label>Content Document</label>
+              
+              {/* Tab Selector */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => { setDocInputType('url'); onClearError?.() }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    background: docInputType === 'url' ? 'var(--blue-dim)' : 'transparent',
+                    color: docInputType === 'url' ? 'var(--blue)' : 'var(--text-2)',
+                    border: `1px solid ${docInputType === 'url' ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 200ms'
+                  }}
+                >
+                  Google Doc URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setDocInputType('file'); onClearError?.() }}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    background: docInputType === 'file' ? 'var(--blue-dim)' : 'transparent',
+                    color: docInputType === 'file' ? 'var(--blue)' : 'var(--text-2)',
+                    border: `1px solid ${docInputType === 'file' ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    transition: 'all 200ms'
+                  }}
+                >
+                  Local File (.html / .txt)
+                </button>
               </div>
+
+              {docInputType === 'url' ? (
+                <div className="input-with-icon">
+                  <span className="input-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                      <polyline points="14 2 14 8 20 8"/>
+                      <line x1="16" y1="13" x2="8" y2="13"/>
+                      <line x1="16" y1="17" x2="8" y2="17"/>
+                      <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                  </span>
+                  <input
+                    className="input-field"
+                    type="url"
+                    placeholder="https://docs.google.com/document/d/..."
+                    value={docUrl}
+                    onChange={e => { onDocUrlChange(e.target.value); onClearError?.() }}
+                    required={docInputType === 'url'}
+                    spellCheck={false}
+                  />
+                </div>
+              ) : (
+                <div style={{
+                  border: '1.5px dashed var(--border-bright)',
+                  borderRadius: 'var(--r-md)',
+                  padding: '20px 16px',
+                  textAlign: 'center',
+                  background: 'rgba(0,0,0,0.01)',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 200ms'
+                }}>
+                  <input
+                    type="file"
+                    accept=".txt,.html"
+                    onChange={handleFileChange}
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      opacity: 0,
+                      cursor: 'pointer'
+                    }}
+                  />
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text-3)', marginBottom: 8 }}>
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-1)' }}>
+                    {localFileName ? `Selected: ${localFileName}` : 'Choose an HTML or TXT file'}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: 4 }}>
+                    {localFileName ? 'Click or drag to replace' : 'Download from Google Docs as Web Page (.html) or Plain Text (.txt)'}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="input-group">
@@ -122,8 +235,8 @@ export default function InputPanel({ docUrl, siteUrl, onDocUrlChange, onSiteUrlC
           <button
             type="submit"
             className="btn-primary"
-            style={{ width: '100%', fontSize: '15px', padding: '15px' }}
-            disabled={running || !docUrl.trim() || !siteUrl.trim()}
+            style={{ width: '100%', fontSize: '15px', padding: '15px', marginTop: '8px' }}
+            disabled={running || (docInputType === 'url' ? !docUrl.trim() : !localFileText.trim()) || !siteUrl.trim()}
           >
             {running ? (
               <>
