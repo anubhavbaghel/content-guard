@@ -65,9 +65,10 @@ export default function App() {
       const webPages = [rootData]
       for (const link of internalLinks) {
         const label = link.text || link.href
+        const finalUrl = mergeQueryParams(link.href, siteUrlIn)
         push(`Crawling: ${label}`)
         try {
-          const pageData = await window.electronAPI.crawlPage(link.href, label)
+          const pageData = await window.electronAPI.crawlPage(finalUrl, label)
           webPages.push(pageData)
         } catch (e) {
           console.warn('Crawl failed for', link.href, e.message)
@@ -168,19 +169,38 @@ function ShieldSVG() {
 // ── Helpers ──────────────────────────────────────────────
 function deduplicateLinks(links, rootUrl) {
   const seen = new Set()
-  let rootHostname
-  try { rootHostname = new URL(rootUrl).hostname } catch { return [] }
-  const rootNorm = rootUrl.replace(/\/$/, '')
+  let rootHostname, rootClean
+  try {
+    const rootObj = new URL(rootUrl)
+    rootHostname = rootObj.hostname
+    rootClean = rootObj.origin + rootObj.pathname.toLowerCase().replace(/\/$/, '')
+  } catch { return [] }
 
   return links.filter(link => {
     try {
       const u = new URL(link.href)
-      const norm = link.href.replace(/\/$/, '')
+      const uClean = u.origin + u.pathname.toLowerCase().replace(/\/$/, '')
       if (u.hostname !== rootHostname) return false
-      if (norm === rootNorm) return false
-      if (seen.has(norm)) return false
-      seen.add(norm)
+      if (uClean === rootClean) return false
+      if (seen.has(uClean)) return false
+      seen.add(uClean)
       return true
     } catch { return false }
   })
+}
+
+function mergeQueryParams(targetUrl, baseUrl) {
+  try {
+    const baseObj = new URL(baseUrl)
+    const targetObj = new URL(targetUrl)
+    
+    // Copy all query parameters from base to target
+    baseObj.searchParams.forEach((value, key) => {
+      targetObj.searchParams.set(key, value)
+    })
+    
+    return targetObj.toString()
+  } catch (e) {
+    return targetUrl
+  }
 }

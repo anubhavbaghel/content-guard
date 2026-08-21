@@ -23,13 +23,21 @@ function slugify(text) {
     .replace(/-+$/, '')             // Trim - from end
 }
 
+function cleanUrl(url) {
+  try {
+    const u = new URL(url)
+    return (u.origin + u.pathname).toLowerCase().replace(/\/$/, '')
+  } catch (e) {
+    return url.toLowerCase().replace(/\/$/, '')
+  }
+}
+
 function getMatchScore(docPage, webPage, siteUrl) {
   const nameLower = docPage.name.toLowerCase()
-  const urlLower = webPage.url.toLowerCase()
-
-  // Get the URL path part (e.g. "used-bikes" from "https://site.com/used-bikes")
-  const rootNorm = siteUrl.replace(/\/$/, '')
-  const pathPart = urlLower.replace(rootNorm, '').replace(/^\//, '').replace(/\/$/, '')
+  
+  const urlClean = cleanUrl(webPage.url)
+  const rootClean = cleanUrl(siteUrl)
+  const pathPart = urlClean.replace(rootClean, '').replace(/^\//, '')
 
   // 1. Root URL match for Home page
   if (nameLower === 'home' || nameLower === 'welcome') {
